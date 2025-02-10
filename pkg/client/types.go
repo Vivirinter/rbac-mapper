@@ -1,18 +1,22 @@
 package client
 
+type RoleKind string
+type BindingKind string
+
+const (
+	KindRole        RoleKind = "Role"
+	KindClusterRole RoleKind = "ClusterRole"
+
+	KindRoleBinding        BindingKind = "RoleBinding"
+	KindClusterRoleBinding BindingKind = "ClusterRoleBinding"
+)
+
 type RoleInfo struct {
 	Name      string
 	Namespace string
 	Rules     []RuleInfo
 	Kind      RoleKind
 }
-
-type RoleKind string
-
-const (
-	KindRole        RoleKind = "Role"
-	KindClusterRole RoleKind = "ClusterRole"
-)
 
 type RuleInfo struct {
 	Resources []string
@@ -26,13 +30,6 @@ type BindingInfo struct {
 	RoleRef   RoleRef
 	Subjects  []Subject
 }
-
-type BindingKind string
-
-const (
-	KindRoleBinding        BindingKind = "RoleBinding"
-	KindClusterRoleBinding BindingKind = "ClusterRoleBinding"
-)
 
 type RoleRef struct {
 	Kind string

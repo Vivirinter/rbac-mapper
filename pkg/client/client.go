@@ -2,102 +2,102 @@ package client
 
 import (
 	"context"
-
-	rbacv1 "k8s.io/api/rbac/v1"
+	"fmt"
+	"k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+)
+
+var (
+	ErrInvalidKubeconfig = fmt.Errorf("invalid kubeconfig")
+	ErrClientConnection  = fmt.Errorf("failed to connect to cluster")
 )
 
 type Client struct {
 	clientset *kubernetes.Clientset
 }
 
-func NewClient(kubeconfigPath string) (*Client, error) {
+func New(kubeconfigPath string) (*Client, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrInvalidKubeconfig, err)
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrClientConnection, err)
 	}
 
 	return &Client{clientset: clientset}, nil
 }
 
-func (c *Client) GetNamespaces(ctx context.Context) ([]string, error) {
+func (c *Client) ListNamespaces(ctx context.Context) ([]string, error) {
 	namespaces, err := c.clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listing namespaces: %w", err)
 	}
 
-	namespaceList := make([]string, 0, len(namespaces.Items))
+	result := make([]string, 0, len(namespaces.Items))
 	for _, ns := range namespaces.Items {
-		namespaceList = append(namespaceList, ns.Name)
+		result = append(result, ns.Name)
 	}
-
-	return namespaceList, nil
+	return result, nil
 }
 
-func (c *Client) GetRoles(ctx context.Context, namespace string) ([]RoleInfo, error) {
+func (c *Client) ListRoles(ctx context.Context, namespace string) ([]RoleInfo, error) {
 	roles, err := c.clientset.RbacV1().Roles(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listing roles in namespace %s: %w", namespace, err)
 	}
 
-	roleInfos := make([]RoleInfo, 0, len(roles.Items))
+	result := make([]RoleInfo, 0, len(roles.Items))
 	for _, role := range roles.Items {
-		roleInfos = append(roleInfos, convertRole(role))
+		result = append(result, convertRole(role))
 	}
-
-	return roleInfos, nil
+	return result, nil
 }
 
-func (c *Client) GetClusterRoles(ctx context.Context) ([]RoleInfo, error) {
-	clusterRoles, err := c.clientset.RbacV1().ClusterRoles().List(ctx, metav1.ListOptions{})
+func (c *Client) ListClusterRoles(ctx context.Context) ([]RoleInfo, error) {
+	roles, err := c.clientset.RbacV1().ClusterRoles().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listing cluster roles: %w", err)
 	}
 
-	roleInfos := make([]RoleInfo, 0, len(clusterRoles.Items))
-	for _, role := range clusterRoles.Items {
-		roleInfos = append(roleInfos, convertClusterRole(role))
+	result := make([]RoleInfo, 0, len(roles.Items))
+	for _, role := range roles.Items {
+		result = append(result, convertClusterRole(role))
 	}
-
-	return roleInfos, nil
+	return result, nil
 }
 
-func (c *Client) GetBindings(ctx context.Context, namespace string) ([]BindingInfo, error) {
-	roleBindings, err := c.clientset.RbacV1().RoleBindings(namespace).List(ctx, metav1.ListOptions{})
+func (c *Client) ListRoleBindings(ctx context.Context, namespace string) ([]BindingInfo, error) {
+	bindings, err := c.clientset.RbacV1().RoleBindings(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listing role bindings in namespace %s: %w", namespace, err)
 	}
 
-	bindingInfos := make([]BindingInfo, 0, len(roleBindings.Items))
-	for _, binding := range roleBindings.Items {
-		bindingInfos = append(bindingInfos, convertRoleBinding(binding))
+	result := make([]BindingInfo, 0, len(bindings.Items))
+	for _, binding := range bindings.Items {
+		result = append(result, convertRoleBinding(binding))
 	}
-
-	return bindingInfos, nil
+	return result, nil
 }
 
-func (c *Client) GetClusterBindings(ctx context.Context) ([]BindingInfo, error) {
-	clusterBindings, err := c.clientset.RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{})
+func (c *Client) ListClusterRoleBindings(ctx context.Context) ([]BindingInfo, error) {
+	bindings, err := c.clientset.RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listing cluster role bindings: %w", err)
 	}
 
-	bindingInfos := make([]BindingInfo, 0, len(clusterBindings.Items))
-	for _, binding := range clusterBindings.Items {
-		bindingInfos = append(bindingInfos, convertClusterRoleBinding(binding))
+	result := make([]BindingInfo, 0, len(bindings.Items))
+	for _, binding := range bindings.Items {
+		result = append(result, convertClusterRoleBinding(binding))
 	}
-
-	return bindingInfos, nil
+	return result, nil
 }
 
-func convertRole(role rbacv1.Role) RoleInfo {
+func convertRole(role v1.Role) RoleInfo {
 	return RoleInfo{
 		Name:      role.Name,
 		Namespace: role.Namespace,
@@ -106,7 +106,7 @@ func convertRole(role rbacv1.Role) RoleInfo {
 	}
 }
 
-func convertClusterRole(role rbacv1.ClusterRole) RoleInfo {
+func convertClusterRole(role v1.ClusterRole) RoleInfo {
 	return RoleInfo{
 		Name:      role.Name,
 		Namespace: "",
@@ -115,18 +115,18 @@ func convertClusterRole(role rbacv1.ClusterRole) RoleInfo {
 	}
 }
 
-func convertRules(rules []rbacv1.PolicyRule) []RuleInfo {
-	ruleInfos := make([]RuleInfo, 0, len(rules))
+func convertRules(rules []v1.PolicyRule) []RuleInfo {
+	result := make([]RuleInfo, 0, len(rules))
 	for _, rule := range rules {
-		ruleInfos = append(ruleInfos, RuleInfo{
+		result = append(result, RuleInfo{
 			Resources: rule.Resources,
 			Verbs:     rule.Verbs,
 		})
 	}
-	return ruleInfos
+	return result
 }
 
-func convertRoleBinding(binding rbacv1.RoleBinding) BindingInfo {
+func convertRoleBinding(binding v1.RoleBinding) BindingInfo {
 	return BindingInfo{
 		Name:      binding.Name,
 		Namespace: binding.Namespace,
@@ -139,7 +139,7 @@ func convertRoleBinding(binding rbacv1.RoleBinding) BindingInfo {
 	}
 }
 
-func convertClusterRoleBinding(binding rbacv1.ClusterRoleBinding) BindingInfo {
+func convertClusterRoleBinding(binding v1.ClusterRoleBinding) BindingInfo {
 	return BindingInfo{
 		Name:      binding.Name,
 		Namespace: "",
@@ -152,14 +152,14 @@ func convertClusterRoleBinding(binding rbacv1.ClusterRoleBinding) BindingInfo {
 	}
 }
 
-func convertSubjects(subjects []rbacv1.Subject) []Subject {
-	subjectInfos := make([]Subject, 0, len(subjects))
+func convertSubjects(subjects []v1.Subject) []Subject {
+	result := make([]Subject, 0, len(subjects))
 	for _, subject := range subjects {
-		subjectInfos = append(subjectInfos, Subject{
+		result = append(result, Subject{
 			Kind:      subject.Kind,
 			Name:      subject.Name,
 			Namespace: subject.Namespace,
 		})
 	}
-	return subjectInfos
+	return result
 }

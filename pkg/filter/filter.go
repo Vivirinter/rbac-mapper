@@ -7,19 +7,28 @@ import (
 )
 
 type Filter struct {
-	verbs     []string
-	resources []string
+	verbMap     map[string]struct{}
+	resourceMap map[string]struct{}
 }
 
 func New(verbs, resources []string) *Filter {
-	return &Filter{
-		verbs:     verbs,
-		resources: resources,
+	f := &Filter{
+		verbMap:     make(map[string]struct{}, len(verbs)),
+		resourceMap: make(map[string]struct{}, len(resources)),
 	}
+
+	for _, verb := range verbs {
+		f.verbMap[strings.ToLower(verb)] = struct{}{}
+	}
+	for _, resource := range resources {
+		f.resourceMap[strings.ToLower(resource)] = struct{}{}
+	}
+
+	return f
 }
 
 func (f *Filter) MatchRole(role client.RoleInfo) bool {
-	if f == nil || (len(f.verbs) == 0 && len(f.resources) == 0) {
+	if f == nil || (len(f.verbMap) == 0 && len(f.resourceMap) == 0) {
 		return true
 	}
 
@@ -36,30 +45,26 @@ func (f *Filter) matchRule(rule client.RuleInfo) bool {
 }
 
 func (f *Filter) matchVerbs(ruleVerbs []string) bool {
-	if len(f.verbs) == 0 {
+	if len(f.verbMap) == 0 {
 		return true
 	}
 
-	for _, verb := range f.verbs {
-		for _, ruleVerb := range ruleVerbs {
-			if strings.EqualFold(verb, ruleVerb) {
-				return true
-			}
+	for _, verb := range ruleVerbs {
+		if _, ok := f.verbMap[strings.ToLower(verb)]; ok {
+			return true
 		}
 	}
 	return false
 }
 
 func (f *Filter) matchResources(ruleResources []string) bool {
-	if len(f.resources) == 0 {
+	if len(f.resourceMap) == 0 {
 		return true
 	}
 
-	for _, resource := range f.resources {
-		for _, ruleResource := range ruleResources {
-			if strings.EqualFold(resource, ruleResource) {
-				return true
-			}
+	for _, resource := range ruleResources {
+		if _, ok := f.resourceMap[strings.ToLower(resource)]; ok {
+			return true
 		}
 	}
 	return false

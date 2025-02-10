@@ -1,60 +1,33 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
-
 	"github.com/spf13/pflag"
+	"github.com/Vivirinter/rbac-mapper/pkg/export"
 )
 
 type Config struct {
-	KubeconfigPath string
-	OutputFormat   string
-	Verbs         []string
-	Resources     []string
-	ResultLimit   int
+	KubeConfig string
+	OutputFormat export.Format
+	Verbs []string
+	Resources []string
+	Limit int
 }
 
-func LoadConfig() (*Config, error) {
-	var (
-		kubeconfig  string
-		output      string
-		verbs       string
-		resources   string
-		resultLimit int
-	)
+func New() *Config {
+	cfg := &Config{}
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("getting user home dir: %w", err)
-	}
-
+	home, _ := os.UserHomeDir()
 	defaultKubeconfig := filepath.Join(home, ".kube", "config")
-	if envKubeconfig := os.Getenv("KUBECONFIG"); envKubeconfig != "" {
-		defaultKubeconfig = envKubeconfig
-	}
 
-	pflag.StringVar(&kubeconfig, "kubeconfig", defaultKubeconfig, "Path to kubeconfig file")
-	pflag.StringVar(&output, "output-format", "text", "Output format (text)")
-	pflag.StringVar(&verbs, "verbs", "", "Filter by verbs (comma-separated)")
-	pflag.StringVar(&resources, "resources", "", "Filter by resources (comma-separated)")
-	pflag.IntVar(&resultLimit, "limit", 0, "Limit the number of results (0 for no limit)")
+	pflag.StringVar(&cfg.KubeConfig, "kubeconfig", defaultKubeconfig, "path to kubeconfig file")
+	pflag.StringVar((*string)(&cfg.OutputFormat), "output-format", string(export.TextFormat), "output format (text|json|yaml)")
+	pflag.StringSliceVar(&cfg.Verbs, "verbs", nil, "filter by verbs (comma-separated)")
+	pflag.StringSliceVar(&cfg.Resources, "resources", nil, "filter by resources (comma-separated)")
+	pflag.IntVar(&cfg.Limit, "limit", 0, "limit the number of results (0 for no limit)")
+
 	pflag.Parse()
 
-	cfg := &Config{
-		KubeconfigPath: kubeconfig,
-		OutputFormat:   output,
-		ResultLimit:    resultLimit,
-	}
-
-	if verbs != "" {
-		cfg.Verbs = strings.Split(verbs, ",")
-	}
-	if resources != "" {
-		cfg.Resources = strings.Split(resources, ",")
-	}
-
-	return cfg, nil
+	return cfg
 }
