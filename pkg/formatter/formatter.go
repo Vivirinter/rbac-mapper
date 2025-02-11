@@ -18,16 +18,16 @@ const (
 
 var (
 	baseStyle = lipgloss.NewStyle().
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("240"))
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("240"))
 
 	titleStyle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("99"))
+			Bold(true).
+			Foreground(lipgloss.Color("99"))
 
 	headerStyle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("240"))
+			Bold(true).
+			Foreground(lipgloss.Color("240"))
 )
 
 type tableConfig struct {
@@ -139,43 +139,35 @@ func createTable(cfg tableConfig) string {
 func FormatRoles(result *analyzer.Result) string {
 	var sb strings.Builder
 
-	// Cluster Roles
-	rows := make([]table.Row, 0)
-	for _, role := range result.ClusterRoles {
-		for _, rule := range role.Rules {
-			rows = append(rows, table.Row{
-				role.Name,
-				strings.Join(rule.Resources, ", "),
-				strings.Join(rule.Verbs, ", "),
-			})
-		}
-	}
-	sb.WriteString(createTable(tableConfig{
-		title:   "Cluster Roles",
-		headers: []string{"Role", "Resources", "Verbs"},
-		rows:    rows,
-		width:   getTerminalWidth(),
-	}))
-
-	rows = make([]table.Row, 0)
-	for namespace, roles := range result.Roles {
-		for _, role := range roles {
+	if len(result.ClusterRoles) > 0 {
+		sb.WriteString(titleStyle.Render("Cluster Roles\n"))
+		for _, role := range result.ClusterRoles {
+			sb.WriteString(fmt.Sprintf("\n%s:\n", headerStyle.Render(role.Name)))
 			for _, rule := range role.Rules {
-				rows = append(rows, table.Row{
-					namespace,
-					role.Name,
-					strings.Join(rule.Resources, ", "),
-					strings.Join(rule.Verbs, ", "),
-				})
+				sb.WriteString(fmt.Sprintf("  - %s:\n", strings.Join(rule.Resources, ", ")))
+				if len(rule.Verbs) > 0 {
+					sb.WriteString(fmt.Sprintf("    %s\n", strings.Join(rule.Verbs, ", ")))
+				}
 			}
 		}
+		sb.WriteString("\n")
 	}
-	sb.WriteString(createTable(tableConfig{
-		title:   "Namespace Roles",
-		headers: []string{"Namespace", "Role", "Resources", "Verbs"},
-		rows:    rows,
-		width:   getTerminalWidth(),
-	}))
+
+	for ns, roles := range result.Roles {
+		if len(roles) > 0 {
+			sb.WriteString(titleStyle.Render(fmt.Sprintf("\nNamespace: %s\n", ns)))
+			for _, role := range roles {
+				sb.WriteString(fmt.Sprintf("\n%s:\n", headerStyle.Render(role.Name)))
+				for _, rule := range role.Rules {
+					sb.WriteString(fmt.Sprintf("  - %s:\n", strings.Join(rule.Resources, ", ")))
+					if len(rule.Verbs) > 0 {
+						sb.WriteString(fmt.Sprintf("    %s\n", strings.Join(rule.Verbs, ", ")))
+					}
+				}
+			}
+			sb.WriteString("\n")
+		}
+	}
 
 	return sb.String()
 }

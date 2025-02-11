@@ -118,8 +118,23 @@ func convertClusterRole(role v1.ClusterRole) RoleInfo {
 func convertRules(rules []v1.PolicyRule) []RuleInfo {
 	result := make([]RuleInfo, 0, len(rules))
 	for _, rule := range rules {
+		resources := make([]string, 0, len(rule.Resources)*len(rule.APIGroups))
+		if len(rule.APIGroups) > 0 {
+			for _, group := range rule.APIGroups {
+				for _, resource := range rule.Resources {
+					if group == "" {
+						resources = append(resources, resource)
+					} else {
+						resources = append(resources, fmt.Sprintf("%s/%s", group, resource))
+					}
+				}
+			}
+		} else {
+			resources = append(resources, rule.Resources...)
+		}
+
 		result = append(result, RuleInfo{
-			Resources: rule.Resources,
+			Resources: resources,
 			Verbs:     rule.Verbs,
 		})
 	}

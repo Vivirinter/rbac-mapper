@@ -70,6 +70,8 @@ func (f *Filter) matchResources(ruleResources []string) bool {
 	return false
 }
 
+// TODO: Implement binding filtering logic when needed.
+// Currently always returns true as binding filtering is not implemented yet.
 func (f *Filter) MatchBinding(binding client.BindingInfo) bool {
 	return true
 }

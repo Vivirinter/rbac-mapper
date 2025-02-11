@@ -1,18 +1,18 @@
 package config
 
 import (
+	"github.com/Vivirinter/rbac-mapper/pkg/export"
+	"github.com/spf13/pflag"
 	"os"
 	"path/filepath"
-	"github.com/spf13/pflag"
-	"github.com/Vivirinter/rbac-mapper/pkg/export"
 )
 
 type Config struct {
-	KubeConfig string
+	KubeConfig   string
 	OutputFormat export.Format
-	Verbs []string
-	Resources []string
-	Limit int
+	Verbs        []string
+	Resources    []string
+	Limit        int
 }
 
 func New() *Config {
