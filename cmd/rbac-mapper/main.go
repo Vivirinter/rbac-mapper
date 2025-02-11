@@ -1,4 +1,3 @@
-// Package main provides the entry point for the rbac-mapper tool
 package main
 
 import (
@@ -21,9 +20,9 @@ func main() {
 	}
 
 	result, err := analyzer.Analyze(k8sClient, analyzer.Options{
-		Verbs: cfg.Verbs,
+		Verbs:     cfg.Verbs,
 		Resources: cfg.Resources,
-		Limit: cfg.Limit,
+		Limit:     cfg.Limit,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error analyzing RBAC: %v\n", err)
