@@ -20,7 +20,6 @@ jobs:
           go-version: '1.23'
           cache: true
 
-      # Очищаем кеш перед всеми операциями с модулями
       - name: Clean Go modules
         run: go clean -modcache
 
