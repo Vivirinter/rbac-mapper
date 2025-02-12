@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
 
@@ -19,16 +20,9 @@ jobs:
           go-version: '1.23'
           cache: true
 
+      # Очищаем кеш перед всеми операциями с модулями
       - name: Clean Go modules
         run: go clean -modcache
-
-      - name: Test
-        run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.txt
 
       - name: Lint
         uses: golangci/golangci-lint-action@v3
@@ -40,6 +34,14 @@ jobs:
         uses: securego/gosec@master
         with:
           args: './...'
+
+      - name: Test
+        run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.txt
 
   release:
     needs: verify
@@ -58,7 +60,6 @@ jobs:
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           version: latest
           args: release --clean
